@@ -1,0 +1,25 @@
+;; data/datascript-tx.edn — DataScript tx-data derived from src/association/facts.cljc
+;; `association.facts/catalog` (ADR-2607141700 Wave 0). Same shape as sibling files.
+
+[#:association-rule{:id "uip.initial-meeting-1936-07-08"
+                     :title "Owners and representatives of 55 industries met at the Banco de la República on 8 July 1936, the initial step toward founding UIP (UIP's own official 'Historia' page)"
+                     :association "uip"
+                     :isic "9411"
+                     :country "PRY"
+                     :kind :governance-program
+                     :url "https://uip.org.py/institucional/historia/"
+                     :url-provenance :official-uip-org-py
+                     :established-date "1936-07-08"
+                     :retrieved-at "2026-07-18"
+                     :topic [:governance]}
+ #:association-rule{:id "uip.founding-1936-09-20"
+                     :title "The Unión Industrial Paraguaya (UIP) was definitively constituted on 20 September 1936, following a lengthy assembly with full acceptance of its bylaws (UIP's own official 'Historia' page)"
+                     :association "uip"
+                     :isic "9411"
+                     :country "PRY"
+                     :kind :governance-program
+                     :url "https://uip.org.py/institucional/historia/"
+                     :url-provenance :official-uip-org-py
+                     :established-date "1936-09-20"
+                     :retrieved-at "2026-07-18"
+                     :topic [:governance]}]
