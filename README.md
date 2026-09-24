@@ -68,33 +68,74 @@ municipality
 ([`cloud-itonami-municipality-pry-asuncion`](https://github.com/cloud-itonami/cloud-itonami-municipality-pry-asuncion)),
 and association (this repo).
 
-Both entries here are directly WebFetch-verified against `uip.org.py`'s
-own official "Historia" page, which renders successfully and gives
-precisely dated quotes — no fallback needed. No Wikidata entry exists
-for UIP at all (search returned "no results matching the query") —
-noted transparently.
+Every entry cites a page or document UIP itself serves from
+`uip.org.py`, with the verbatim Spanish span it rests on
+(`:source-quote`) and where in the source it is (`:source-article`):
+
+- the **Institucional** page (mission, vision, values, strategic axes,
+  the dated history timeline, branches) and the **Historia** page;
+- the **Estatuto** (Statute) PDF linked under "Instrumentos
+  Reguladores" -- Art. 1 (founded 20 Setiembre 1936, Decree 7197),
+  aims, membership, authorities, President's term, Tribunal de Honor,
+  dissolution, and the closing approval note (20/IX/1936; current
+  reforms 25/I/2022, Decree 8953 of 13/III/2023);
+- the **Código de Conducta** (approved by the Consejo Directivo on
+  17 December 2019), the **Política de Calidad** (ISO 9001:2015) and
+  the **Política de Comunicación** (approved 10 December 2024);
+- service and committee pages (Certificaciones, CEE, UIP Joven,
+  Comisión de Damas, No al Trabajo Infantil, Fundación Industrial,
+  Centro Mi Pyme Cumple) and the 90th-anniversary news post
+  (17/09/2026).
+
+Two of UIP's own pages disagree on when the "No al Trabajo Infantil"
+drawing contest began (Comisión de Damas: 2013; the contest page:
+"Desde 2016"). Both are recorded, each as its page states it, and each
+title names the other; neither is chosen.
+
+The Historia page's founding sentence reads "El 20 de setiembre del
+mismo" -- no year -- so the 1936-09-20 founding is cited from the
+Institucional page and the Statute instead, which both name the year.
+`https://uip.org.py/institucional/historia/` (the July citation)
+now redirects to `https://uip.org.py/historia/`, which is cited
+directly.
+
+No Wikidata entry exists for UIP (search returned "no results
+matching the query" in July) -- noted transparently. No personal names
+of office-holders are persisted; the quotes stop before each name and
+`test/association/facts_test.kotoba` pins that they still do.
 
 ## Scope
 
-A **read-only reference/archive** catalog — not an Advisor⊣Governor
+A **read-only reference/archive** catalog -- not an Advisor⊣Governor
 actuation actor. It proposes or executes nothing on UIP's behalf.
 
 Coverage is reported honestly (see `association.facts/coverage`): an
-association not in `catalog` has **no spec-basis**, full stop — never
+association not in `catalog` has **no spec-basis**, full stop -- never
 fabricate one.
 
 ## Data
 
-- `src/association/facts.cljc` — the catalog, source of truth.
-- `schema/association-rule.edn` — DataScript schema.
-- `data/datascript-tx.edn` — derived DataScript tx-data (query this
-  alongside other `cloud-itonami`/`etzhayyim` compliance-fact sources via
-  `com-junkawasaki/root`'s `scripts/compliance-fact-query.cljs`).
+- `data/datascript-tx.edn` -- the catalog, source of truth. Facts are
+  authored here and nowhere else.
+- `src/association/facts.kotoba` (Clojure reading) and
+  `src/association_facts.kotoba` (Kotoba port) -- both GENERATED from
+  the data file by `scripts/gen-kotoba-port.cljk`. Do not hand-edit.
+- `schema/association-rule.edn` -- DataScript schema.
 
-Both entries directly WebFetch-verified against UIP's own Historia
-page: owners and representatives of 55 industries meeting at the
-Banco de la República on 8 July 1936, and UIP's definitive
-constitution on 20 September 1936 following a lengthy assembly.
+## Verify
+
+```sh
+kbb --backend sci scripts/gen-kotoba-port.cljk --check    # both readings match the data file
+kbb --backend sci scripts/verify-catalog.cljk             # structural, offline
+kbb --backend sci scripts/verify-catalog.cljk --live      # fetch every :url, require every quote
+```
+
+`verify-catalog` exits 0 (checked, nothing wrong), 1 (findings printed)
+or 2 (refused: could not read the catalog or a source -- neither a pass
+nor a finding). `--live` needs `curl` and `pdftotext` on PATH, prints
+`FETCHED n/n`, and prints a `CONTROL` line for a path that cannot exist
+on `uip.org.py` so that a soft-404 fallback page is detected rather
+than read as support.
 
 ## License
 

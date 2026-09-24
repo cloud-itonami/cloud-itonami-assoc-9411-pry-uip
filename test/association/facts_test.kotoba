@@ -1,10 +1,11 @@
 (ns association.facts-test
-  (:require [clojure.test :refer [deftest is]]
-            [association.facts :as facts]))
+  (:require [clojure.test :refer [deftest is testing]]
+            [association.facts :as facts]
+            [clojure.string :as str]))
 
 (deftest uip-has-spec-basis
   (let [sb (facts/spec-basis "uip")]
-    (is (= 2 (count sb)))
+    (is (= 38 (count sb)))
     (is (every? #(= "9411" (:association-rule/isic %)) sb))
     (is (every? #(= "PRY" (:association-rule/country %)) sb))))
 
@@ -19,6 +20,77 @@
     (is (= ["ibec"] (:missing-associations c)))))
 
 (deftest by-topic-filters
-  (is (= 2 (count (facts/by-topic "uip" :governance))))
-  (is (empty? (facts/by-topic "uip" :labor)))
+  (is (= 16 (count (facts/by-topic "uip" :governance))))
+  (is (= 14 (count (facts/by-topic "uip" :statute))))
+  (is (= 10 (count (facts/by-topic "uip" :policy))))
+  (is (= 7 (count (facts/by-topic "uip" :history))))
+  (is (= 7 (count (facts/by-topic "uip" :ethics))))
+  (is (= 6 (count (facts/by-topic "uip" :labor))))
+  (is (= 4 (count (facts/by-topic "uip" :constitution))))
+  (is (= 4 (count (facts/by-topic "uip" :compliance))))
+  (is (= 3 (count (facts/by-topic "uip" :membership))))
+  (is (= 3 (count (facts/by-topic "uip" :trade))))
+  (is (= 2 (count (facts/by-topic "uip" :education))))
+  (is (= 2 (count (facts/by-topic "uip" :finance))))
+  (is (empty? (facts/by-topic "uip" :no-such-topic)))
   (is (empty? (facts/by-topic "ibec" :governance))))
+
+(deftest every-entry-is-individually-addressable
+  ;; A catalog that reused an id would let one entry shadow another under
+  ;; :db.unique/identity, and the count assertions above would not notice.
+  (let [sb (facts/spec-basis "uip")]
+    (is (= (count sb) (count (into #{} (map :association-rule/id sb)))))
+    (is (every? #(re-matches #"uip\.[a-z0-9-]+" (:association-rule/id %)) sb))))
+
+(deftest every-entry-carries-a-source-and-says-whose-it-is
+  ;; One speaker, one host: every source is UIP's own, served from uip.org.py.
+  (doseq [e (facts/spec-basis "uip")]
+    (testing (:association-rule/id e)
+      (is (re-matches #"https://\S+" (:association-rule/url e)))
+      (is (= :official-uip-org-py (:association-rule/url-provenance e)))
+      (is (= "uip.org.py" (second (re-find #"^https://([^/]+)/" (:association-rule/url e)))))
+      (is (seq (:association-rule/source-article e)))
+      (is (seq (:association-rule/source-quote e)))
+      (is (seq (:association-rule/topic e)))
+      (is (re-matches #"\d{4}-\d{2}-\d{2}" (:association-rule/retrieved-at e))))))
+
+(deftest the-founding-is-dated-by-uip-itself
+  ;; 20 September 1936 is given by three of UIP's own texts: the Institucional
+  ;; page (`20 de septiembre de 1936`), Statute Art. 1 (`20 de Setiembre de
+  ;; 1936`) and the Statute's approval note (`20/IX/1936`). The Historia page's
+  ;; own sentence says only `El 20 de setiembre del mismo`, with no year, so it
+  ;; is not cited for this date.
+  (let [founding (filter #(= "1936-09-20" (:association-rule/established-date %))
+                         (facts/spec-basis "uip"))]
+    (is (= #{"uip.founding-1936-09-20" "uip.statute-art1-legal-nature"
+             "uip.statute-approved-1936-09-20"}
+           (set (map :association-rule/id founding))))
+    (is (every? #(= :day (:association-rule/date-precision %)) founding))
+    (is (every? #(not= "https://uip.org.py/historia/" (:association-rule/url %)) founding))))
+
+(deftest a-dated-entry-quotes-its-year
+  ;; The year of every dated entry is in its own quote; an undated entry says
+  ;; why instead of silently carrying nothing.
+  (doseq [e (facts/spec-basis "uip")]
+    (testing (:association-rule/id e)
+      (if-let [d (or (:association-rule/established-date e)
+                     (:association-rule/last-revised-date e))]
+        (is (str/includes? (:association-rule/source-quote e) (subs d 0 4)))
+        (is (keyword? (:association-rule/date-unknown-because e)))))))
+
+(deftest no-office-holder-is-named
+  ;; The Institucional page lists the Junta Ejecutiva, managers and branch
+  ;; staff; the Historia page names the 1936 founders; the Fundacion
+  ;; Industrial page names its board; the Quality Policy is signed by the
+  ;; President; the 90th-anniversary post names the President of the
+  ;; Republic, a minister and the award recipients. The quotes stop before
+  ;; each name; this pins that they still do.
+  (doseq [e (facts/spec-basis "uip")
+          nm ["Duarte" "Peña" "Riquelme" "Grau" "Vaccaro" "Heilbrunn" "Frutos"
+              "Balmelli" "Franchi" "Jaeggli" "García" "Velilla" "Pusineri"
+              "Martino" "Friedmann" "Machuca" "Zapattini" "Méndez" "Felippo"
+              "Daher" "Sborovsky" "Viveros" "Insfrán"]]
+    (is (not (str/includes? (str (:association-rule/title e) " "
+                                 (:association-rule/source-quote e))
+                            nm))
+        (str (:association-rule/id e) " names " nm))))
